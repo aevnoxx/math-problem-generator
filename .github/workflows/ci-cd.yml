@@ -1,0 +1,157 @@
+name: Tests and Weekly Problem Generation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run every Monday at 9:00 AM UTC to generate weekly problem sets
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      problem_count:
+        description: 'Number of problems to generate'
+        required: false
+        default: '10'
+      difficulty:
+        description: 'Difficulty level (easy/medium/hard)'
+        required: false
+        default: 'medium'
+
+jobs:
+  test:
+    name: Run Tests and Code Quality Checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        flake8 src tests main.py --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings
+        flake8 src tests main.py --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: Format check with black
+      run: |
+        black --check src tests main.py || echo "Some files need formatting"
+
+    - name: Run tests with pytest
+      run: |
+        pytest tests/ -v --cov=src --cov-report=xml --cov-report=term
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v3
+      if: matrix.python-version == '3.11'
+      with:
+        files: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  generate-weekly-problems:
+    name: Generate Weekly Problem Set
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Generate problem set
+      run: |
+        # Determine problem count and difficulty
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          PROBLEM_COUNT="${{ github.event.inputs.problem_count }}"
+          DIFFICULTY="${{ github.event.inputs.difficulty }}"
+        else
+          PROBLEM_COUNT="10"
+          DIFFICULTY="medium"
+        fi
+        
+        # Generate date-based filename
+        DATE=$(date +%Y-%m-%d)
+        WEEK=$(date +%Y-W%V)
+        
+        # Generate problems in multiple formats
+        python main.py -n $PROBLEM_COUNT -d $DIFFICULTY -f markdown \
+          -o "examples/generated_problems_${WEEK}.md" \
+          --title "Weekly Problem Set - Week ${WEEK}"
+        
+        python main.py -n $PROBLEM_COUNT -d $DIFFICULTY -f latex \
+          -o "examples/generated_problems_${WEEK}.tex"
+        
+        python main.py -n $PROBLEM_COUNT -d $DIFFICULTY -f json \
+          -o "data/generated_problems_${WEEK}.json"
+        
+        echo "Generated $PROBLEM_COUNT problems at difficulty: $DIFFICULTY"
+
+    - name: Create summary report
+      run: |
+        WEEK=$(date +%Y-W%V)
+        echo "# Weekly Problem Generation Report" > report.md
+        echo "" >> report.md
+        echo "**Generated on:** $(date '+%Y-%m-%d %H:%M:%S UTC')" >> report.md
+        echo "**Week:** ${WEEK}" >> report.md
+        echo "" >> report.md
+        echo "## Files Generated:" >> report.md
+        echo "- \`examples/generated_problems_${WEEK}.md\`" >> report.md
+        echo "- \`examples/generated_problems_${WEEK}.tex\`" >> report.md
+        echo "- \`data/generated_problems_${WEEK}.json\`" >> report.md
+        echo "" >> report.md
+        
+        if [ -f "examples/generated_problems_${WEEK}.md" ]; then
+          PROBLEM_COUNT=$(grep -c "^## Problem" "examples/generated_problems_${WEEK}.md" || echo "0")
+          echo "**Total problems:** ${PROBLEM_COUNT}" >> report.md
+        fi
+
+    - name: Commit and push generated files
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        git add examples/*.md examples/*.tex data/*.json report.md
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🤖 Auto-generate weekly problem set [skip ci]"
+          git push
+        fi
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: weekly-problem-set
+        path: |
+          examples/generated_*.md
+          examples/generated_*.tex
+          data/generated_*.json
+          report.md
+        retention-days: 90
