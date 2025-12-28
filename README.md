@@ -1,6 +1,6 @@
 # Math Problem Generator
 
-![Tests](https://img.shields.io/github/actions/workflow/status/aevnoxx/math-problem-generator/ci-cd.yml?branch=main&label=tests)
+![Tests](https://github.com/aevnoxx/math-problem-generator/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/aevnoxx/math-problem-generator/actions)
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
