@@ -26,8 +26,8 @@ git add .
 # Create initial commit
 git commit -m "Initial commit: Math Problem Generator with CI/CD"
 
-# Add remote (replace YOUR_USERNAME with your GitHub username)
-git remote add origin https://github.com/YOUR_USERNAME/math-problem-generator.git
+# Add remote
+git remote add origin https://github.com/aevnoxx/math-problem-generator.git
 
 # Push to GitHub
 git push -u origin main
@@ -46,14 +46,6 @@ GitHub Actions should be enabled by default. Verify:
 1. Go to repository → **Actions** tab
 2. You should see the workflow "Tests and Weekly Problem Generation"
 3. If not enabled, click "Enable Actions"
-
-### 4. Update README Badges
-
-In `README.md`, replace `YOUR_USERNAME` with your actual GitHub username:
-
-```markdown
-![Tests](https://img.shields.io/github/actions/workflow/status/YOUR_USERNAME/math-problem-generator/ci-cd.yml?branch=main&label=tests)
-```
 
 ### 5. First Test Run
 

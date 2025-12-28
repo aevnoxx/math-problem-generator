@@ -19,20 +19,14 @@ cd math-problem-generator
 git init
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/ВАШ_USERNAME/math-problem-generator.git
+git remote add origin https://github.com/aevnoxx/math-problem-generator.git
 git push -u origin main
 ```
 
-### 3. Обновить README.md
-Открыть `README.md` и заменить:
-```
-YOUR_USERNAME → ваш GitHub username
-```
-
-### 4. Проверить
+### 3. Готово!
 - Зайти в **Actions** tab
 - Увидеть ✅ зелёный статус
-- Готово! 🎉
+- Badge в README автоматически обновится
 
 ## Локальное тестирование (опционально)
 
